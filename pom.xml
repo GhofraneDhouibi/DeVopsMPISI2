@@ -30,7 +30,7 @@
         <java.version>17</java.version>
         <!-- Propriétés SonarCloud -->
         <sonar.organization>ghofranedhouibi</sonar.organization>
-        <sonar.projectKey>GhofraneDhouibi_Projet_DeVops</sonar.projectKey>
+        <sonar.projectKey>GhofraneDhouibi_DeVopsMPISI2</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
     <dependencies>
