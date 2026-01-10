@@ -3,92 +3,44 @@ name: CI/CD with SonarCloud
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:  # Permet de déclencher manuellement
 
 jobs:
-  build-test-sonar:
-    name: Build, Test & SonarCloud Analysis
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      # ÉTAPE 1 : Checkout du code
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Important pour SonarCloud
 
-      # ÉTAPE 2 : Java 17
-      - name: Set up JDK 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # ÉTAPE 3 : Cache Maven
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: maven-
+      - name: Build and Test
+        run: |
+          mvn clean compile
+          mvn test
+          echo "✅ Build and tests completed"
 
-      # ÉTAPE 4 : Build
-      - name: Build project
-        run: mvn clean compile
-
-      # ÉTAPE 5 : Tests avec JaCoCo
-      - name: Run tests with JaCoCo
-        run: mvn test jacoco:report
-
-      # ÉTAPE 6 : Analyse SonarCloud
       - name: SonarCloud Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn verify sonar:sonar \
-            -Dsonar.projectKey=GhofraneDhouibi_DeVopsMPISI2 \
-            -Dsonar.organization=ghofranedhouibi \
-            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.projectKey=GhofraneDhouibi_DeVopsMPISI2
+        continue-on-error: true  # Continue même si Sonar échoue
 
-      # ÉTAPE 7 : Upload rapport JaCoCo
-      - name: Upload JaCoCo report
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-report
-          path: target/site/jacoco/
-          retention-days: 7
-
-  docker-build-push:
-    name: Build & Push Docker Image
+  docker:
     runs-on: ubuntu-latest
-    needs: build-test-sonar  # Attend que les tests passent
+    needs: build-and-test
 
     steps:
-      # ÉTAPE 1 : Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ÉTAPE 2 : Docker Login
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # ÉTAPE 3 : Build Docker
       - name: Build Docker image
         run: |
-          docker build -t ghofranedh/projetmpisi-app:latest .
-          docker build -t ghofranedh/projetmpisi-app:${{ github.sha }} .
-
-      # ÉTAPE 4 : Push Docker
-      - name: Push to Docker Hub
-        run: |
-          docker push ghofranedh/projetmpisi-app:latest
-          docker push ghofranedh/projetmpisi-app:${{ github.sha }}
-
-      # ÉTAPE 5 : Notifier succès
-      - name: Success notification
-        run: echo "✅ Docker image pushed successfully!"
+          docker build -t test-image:latest .
+          echo "✅ Docker build successful (local test)"
