@@ -1,0 +1,34 @@
+name: Auto-Doc CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  autodoc:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trigger Auto-Doc analysis
+        env:
+          AUTODOC_API_URL: ${{ secrets.AUTODOC_API_URL }}
+          AUTODOC_PROJECT_ID: ${{ secrets.AUTODOC_PROJECT_ID }}
+          AUTODOC_TOKEN: ${{ secrets.AUTODOC_TOKEN }}
+        run: |
+          curl -X POST "$AUTODOC_API_URL/api/cicd/analyze" \
+            -H "Authorization: Bearer $AUTODOC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "projectId": "'$AUTODOC_PROJECT_ID'",
+              "repository": "${{ github.repository }}",
+              "branch": "${{ github.ref_name }}",
+              "commit": "${{ github.sha }}",
+              "event": "${{ github.event_name }}"
+            }'
